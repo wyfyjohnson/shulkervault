@@ -42,6 +42,21 @@ repositories {
         name = 'BlameJared'
         url = 'https://maven.blamejared.com'
     }
+    maven {
+        name = 'GeckoLib'
+        url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
+        content {
+            includeGroup('software.bernie.geckolib')
+        }
+    }
+    maven {
+        name = 'Create Mod'
+        url = 'https://maven.createmod.net'
+    }
+    maven {
+        name = 'ThunDxR Snapshots'
+        url = 'https://maven.ithundxr.dev/snapshots'
+    }
 }
 
 // Declare capabilities on the outgoing configurations.
@@ -99,7 +114,12 @@ processResources {
             "forge_version": forge_version,
             "forge_loader_version_range": forge_loader_version_range,
             'credits'                      : credits,
-            'java_version'                 : java_version
+            'java_version'                 : java_version,
+            'geckolib_version'             : geckolib_version,
+            'create_version'               : create_version,
+            'ponder_version'               : ponder_version,
+            'flywheel_version'             : flywheel_version,
+            'registrate_version'           : registrate_version
     ]
 
     filesMatching(['pack.mcmeta', 'fabric.mod.json', 'META-INF/mods.toml', 'META-INF/neoforge.mods.toml', '*.mixins.json']) {

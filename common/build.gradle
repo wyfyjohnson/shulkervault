@@ -21,6 +21,10 @@ dependencies {
     // fabric and neoforge both bundle mixinextras, so it is safe to use it in common
     compileOnly group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.3.5'
     annotationProcessor group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.3.5'
+
+    // GeckoLib for animations - using compileOnly since loaders will provide it
+    // Note: Using neoforge variant for compile time since GeckoLib 4 doesn't have a true common artifact for 1.21.1
+    compileOnly 'software.bernie.geckolib:geckolib-neoforge-1.21.1:4.8.4'
 }
 
 configurations {

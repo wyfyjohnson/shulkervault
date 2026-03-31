@@ -16,7 +16,7 @@
     "environment": "*",
     "entrypoints": {
         "main": [
-            "com.example.examplemod.ExampleMod"
+          "dev.wyfy.shulkervault.ShulkerVault"
         ]
     },
     "mixins": [
