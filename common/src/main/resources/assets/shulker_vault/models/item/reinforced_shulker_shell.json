@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "shulker_vault:item/reinforced_shulker_shell"
+  }
+}

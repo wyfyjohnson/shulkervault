@@ -7,8 +7,15 @@
     nixgl.url = "github:nix-community/nixGL";
   };
 
-  outputs = { self, nixpkgs, flake-utils, nixgl }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      nixgl,
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = import nixpkgs {
           inherit system;
@@ -22,6 +29,7 @@
           packages = with pkgs; [
             # Java 21 for Minecraft 1.21.1
             jdk21
+            openal
 
             # Build tool
             gradle
@@ -50,13 +58,16 @@
 
             export JAVA_HOME="${pkgs.jdk21}"
             export GRADLE_OPTS="-Dorg.gradle.daemon=false"
+            export LD_LIBRARY_PATH=${pkgs.openal}/lib:${pkgs.libpulseaudio}/lib:$LD_LIBRARY_PATH
           '';
         };
 
         # Convenience app for running the NeoForge client with nixGL
         apps.runClient = flake-utils.lib.mkApp {
           drv = pkgs.writeShellScriptBin "run-client" ''
-            ${nixgl.packages.${system}.nixGLDefault}/bin/nixGLDefault ${pkgs.gradle}/bin/gradle :neoforge:runClient "$@"
+            ${
+              nixgl.packages.${system}.nixGLDefault
+            }/bin/nixGLDefault ${pkgs.gradle}/bin/gradle :neoforge:runClient "$@"
           '';
         };
       }

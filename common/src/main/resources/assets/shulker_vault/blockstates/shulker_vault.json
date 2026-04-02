@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "facing=up": {
+      "model": "shulker_vault:block/shulker_vault"
+    },
+    "facing=down": {
+      "model": "shulker_vault:block/shulker_vault"
+    },
+    "facing=north": {
+      "model": "shulker_vault:block/shulker_vault"
+    },
+    "facing=south": {
+      "model": "shulker_vault:block/shulker_vault"
+    },
+    "facing=east": {
+      "model": "shulker_vault:block/shulker_vault"
+    },
+    "facing=west": {
+      "model": "shulker_vault:block/shulker_vault"
+    }
+  }
+}

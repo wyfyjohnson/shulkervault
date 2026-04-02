@@ -1,6 +1,7 @@
 {
   "block.shulker_vault.shulker_vault": "Shulker Vault",
   "item.shulker_vault.shulker_vault": "Shulker Vault",
+  "item.shulker_vault.reinforced_shulker_shell": "Reinforced Shulker Shell",
   "container.shulker_vault.shulker_vault": "Shulker Vault",
   "itemGroup.shulker_vault": "Shulker Vault"
 }

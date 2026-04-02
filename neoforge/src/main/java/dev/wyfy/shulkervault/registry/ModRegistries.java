@@ -1,8 +1,9 @@
 package dev.wyfy.shulkervault.registry;
 
 import dev.wyfy.shulkervault.Constants;
-import dev.wyfy.shulkervault.block.ShulkerVaultBlock;
+import dev.wyfy.shulkervault.block.NeoForgeShulkerVaultBlock;
 import dev.wyfy.shulkervault.block.entity.ShulkerVaultBlockEntity;
+import dev.wyfy.shulkervault.item.ShulkerVaultItem;
 import dev.wyfy.shulkervault.menu.ShulkerVaultMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -17,6 +18,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
+import net.neoforged.neoforge.network.IContainerFactory;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -30,15 +32,19 @@ public class ModRegistries {
     public static final DeferredRegister<CreativeModeTab> CREATIVE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, Constants.MOD_ID);
 
     // Blocks
-    public static final DeferredHolder<Block, ShulkerVaultBlock> SHULKER_VAULT_BLOCK = BLOCKS.register("shulker_vault",
-            () -> new ShulkerVaultBlock(BlockBehaviour.Properties.of()
+    public static final DeferredHolder<Block, NeoForgeShulkerVaultBlock> SHULKER_VAULT_BLOCK = BLOCKS.register("shulker_vault",
+            () -> new NeoForgeShulkerVaultBlock(BlockBehaviour.Properties.of()
                     .strength(2.0f)
+                    .requiresCorrectToolForDrops()
                     .mapColor(MapColor.COLOR_PURPLE)
                     .noOcclusion()));
 
     // Items
     public static final DeferredHolder<Item, BlockItem> SHULKER_VAULT_ITEM = ITEMS.register("shulker_vault",
-            () -> new BlockItem(SHULKER_VAULT_BLOCK.get(), new Item.Properties()));
+            () -> new ShulkerVaultItem(SHULKER_VAULT_BLOCK.get(), new Item.Properties().stacksTo(1)));
+
+    public static final DeferredHolder<Item, Item> REINFORCED_SHULKER_SHELL = ITEMS.register("reinforced_shulker_shell",
+            () -> new Item(new Item.Properties()));
 
     // Block Entities
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ShulkerVaultBlockEntity>> SHULKER_VAULT_BLOCK_ENTITY =
@@ -50,7 +56,7 @@ public class ModRegistries {
     // Menus
     public static final DeferredHolder<MenuType<?>, MenuType<ShulkerVaultMenu>> SHULKER_VAULT_MENU =
             MENUS.register("shulker_vault", () -> IMenuTypeExtension.create(
-                    (windowId, inv, data) -> new ShulkerVaultMenu(windowId, inv)
+                    (IContainerFactory<ShulkerVaultMenu>) (windowId, inv, data) -> new ShulkerVaultMenu(windowId, inv, data)
             ));
 
     // Creative Tab
@@ -60,6 +66,7 @@ public class ModRegistries {
                     .icon(() -> new ItemStack(SHULKER_VAULT_ITEM.get()))
                     .displayItems((parameters, output) -> {
                         output.accept(SHULKER_VAULT_ITEM.get());
+                        output.accept(REINFORCED_SHULKER_SHELL.get());
                     })
                     .build());
 

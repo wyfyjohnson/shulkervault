@@ -22,11 +22,6 @@ public class NeoForgeInventoryHandler implements IInventoryHandler {
                     onChange.run();
                 }
             }
-
-            @Override
-            public int getSlotLimit(int slot) {
-                return maxStackSize;
-            }
         };
     }
 

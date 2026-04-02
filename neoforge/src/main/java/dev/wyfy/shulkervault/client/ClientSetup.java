@@ -22,7 +22,7 @@ public class ClientSetup {
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(
                 ModRegistries.SHULKER_VAULT_BLOCK_ENTITY.get(),
-                context -> new ShulkerVaultBlockRenderer()
+                ShulkerVaultBlockRenderer::new
         );
     }
 

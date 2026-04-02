@@ -2,6 +2,7 @@ package dev.wyfy.shulkervault.block.entity;
 
 import dev.wyfy.shulkervault.Constants;
 import dev.wyfy.shulkervault.menu.ShulkerVaultMenu;
+import dev.wyfy.shulkervault.menu.VaultLocation;
 import dev.wyfy.shulkervault.platform.Services;
 import dev.wyfy.shulkervault.platform.services.IInventoryHandler;
 import dev.wyfy.shulkervault.registry.ModRegistry;
@@ -9,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -18,51 +20,65 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
-import software.bernie.geckolib.animatable.GeoBlockEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.RawAnimation;
-import software.bernie.geckolib.util.GeckoLibUtil;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.AABB;
 
-public class ShulkerVaultBlockEntity extends BlockEntity implements GeoBlockEntity, MenuProvider {
+public class ShulkerVaultBlockEntity extends BlockEntity implements MenuProvider {
 
-    private static final int SLOT_COUNT = 27;
-    private static final int MAX_STACK_SIZE = 576; // 9x normal stack size
+    public enum AnimationStatus {
+        CLOSED,
+        OPENING,
+        CLOSING
+    }
 
-    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
+    private static final int SLOT_COUNT = 108;
+
     private final IInventoryHandler inventory;
 
     private int openCount = 0;
-    private boolean isOpen = false;
-
-    private static final RawAnimation OPEN_ANIMATION = RawAnimation.begin().thenPlay("animation");
-    private static final RawAnimation IDLE_ANIMATION = RawAnimation.begin(); // Idle state
+    private float progress = 0.0f;
+    private float progressOld = 0.0f;
+    private AnimationStatus animationStatus = AnimationStatus.CLOSED;
 
     public ShulkerVaultBlockEntity(BlockPos pos, BlockState blockState) {
         super(ModRegistry.SHULKER_VAULT_BLOCK_ENTITY_TYPE, pos, blockState);
-        this.inventory = Services.PLATFORM.createInventoryHandler(SLOT_COUNT, MAX_STACK_SIZE);
+        this.inventory = Services.PLATFORM.createInventoryHandler(SLOT_COUNT, 64);
         this.inventory.setChanged(this::setChanged);
     }
 
-    @Override
-    public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new AnimationController<>(this, "controller", state -> {
-            if (isOpen) {
-                return state.setAndContinue(OPEN_ANIMATION);
-            }
-            return state.setAndContinue(IDLE_ANIMATION);
-        }));
-    }
-
-    @Override
-    public AnimatableInstanceCache getAnimatableInstanceCache() {
-        return cache;
-    }
-
     public void tick() {
-        // Animation logic is handled by the controller
+        progressOld = progress;
+
+        if (animationStatus == AnimationStatus.OPENING) {
+            progress += 0.1f;
+            if (progress > 1.0f) {
+                progress = 1.0f;
+            }
+        } else if (animationStatus == AnimationStatus.CLOSING) {
+            progress -= 0.1f;
+            if (progress < 0.0f) {
+                progress = 0.0f;
+            }
+        }
     }
+
+    public float getProgress(float partialTick) {
+        return Mth.lerp(partialTick, progressOld, progress);
+    }
+
+    public AABB getLidBoundingBox() {
+    Direction facing = getBlockState().getValue(BlockStateProperties.FACING);
+    float extend = progress * 0.5F;
+    return switch (facing) {
+        case UP    -> new AABB(0, 0.5 + extend,  0,       1,       1.0 + extend, 1);
+        case DOWN  -> new AABB(0, -extend,        0,       1,       0.5 - extend, 1);
+        case NORTH -> new AABB(0, 0,             -extend,  1, 1.0,  0.5 - extend);
+        case SOUTH -> new AABB(0, 0,              0.5 + extend, 1, 1.0, 1.0 + extend);
+        case WEST  -> new AABB(-extend,  0, 0,   0.5 - extend, 1.0, 1);
+        case EAST  -> new AABB(0.5 + extend, 0,  0,  1.0 + extend, 1.0, 1);
+    };
+}
 
     public void startOpen(Player player) {
         Constants.LOG.info("[ShulkerVaultBlockEntity] startOpen called - player: {}, isSpectator: {}, openCount: {}",
@@ -73,10 +89,12 @@ public class ShulkerVaultBlockEntity extends BlockEntity implements GeoBlockEnti
             }
             ++openCount;
 
-            if (openCount == 1 && !isOpen) {
-                Constants.LOG.info("[ShulkerVaultBlockEntity] Opening vault animation - setting isOpen to true");
-                isOpen = true;
-                playOpenAnimation();
+            if (openCount == 1) {
+                Constants.LOG.info("[ShulkerVaultBlockEntity] Opening vault animation - setting status to OPENING");
+                animationStatus = AnimationStatus.OPENING;
+                if (level != null) {
+                    level.blockEvent(worldPosition, getBlockState().getBlock(), 1, 1);
+                }
             }
         }
     }
@@ -87,38 +105,25 @@ public class ShulkerVaultBlockEntity extends BlockEntity implements GeoBlockEnti
         if (!player.isSpectator()) {
             --openCount;
 
-            if (openCount <= 0 && isOpen) {
-                Constants.LOG.info("[ShulkerVaultBlockEntity] Closing vault animation - setting isOpen to false");
+            if (openCount <= 0) {
+                Constants.LOG.info("[ShulkerVaultBlockEntity] Closing vault animation - setting status to CLOSING");
                 openCount = 0;
-                isOpen = false;
-                playCloseAnimation();
+                animationStatus = AnimationStatus.CLOSING;
+                if (level != null) {
+                    level.blockEvent(worldPosition, getBlockState().getBlock(), 1, 0);
+                }
             }
-        }
-    }
-
-    private void playOpenAnimation() {
-        Constants.LOG.info("[ShulkerVaultBlockEntity] playOpenAnimation - level: {}, isClientSide: {}, openCount: {}",
-            level != null, level != null && level.isClientSide, openCount);
-        if (level != null && !level.isClientSide) {
-            Constants.LOG.info("[ShulkerVaultBlockEntity] Sending blockEvent to trigger animation");
-            level.blockEvent(worldPosition, getBlockState().getBlock(), 1, openCount);
-        }
-    }
-
-    private void playCloseAnimation() {
-        Constants.LOG.info("[ShulkerVaultBlockEntity] playCloseAnimation - level: {}, isClientSide: {}, openCount: {}",
-            level != null, level != null && level.isClientSide, openCount);
-        if (level != null && !level.isClientSide) {
-            Constants.LOG.info("[ShulkerVaultBlockEntity] Sending blockEvent to close animation");
-            level.blockEvent(worldPosition, getBlockState().getBlock(), 1, openCount);
         }
     }
 
     @Override
     public boolean triggerEvent(int id, int type) {
-        Constants.LOG.info("[ShulkerVaultBlockEntity] triggerEvent(int,int) called - id: {}", id);
         if (id == 1) {
-            triggerAnim("controller", "animation");
+            if (type > 0) {
+                animationStatus = AnimationStatus.OPENING;
+            } else if (type == 0) {
+                animationStatus = AnimationStatus.CLOSING;
+            }
             return true;
         }
         return super.triggerEvent(id, type);
@@ -161,7 +166,7 @@ public class ShulkerVaultBlockEntity extends BlockEntity implements GeoBlockEnti
     @Nullable
     @Override
     public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
-        return new ShulkerVaultMenu(containerId, playerInventory, this);
+        return new ShulkerVaultMenu(containerId, playerInventory, this, new VaultLocation.InBlock(this.worldPosition));
     }
 
     /**

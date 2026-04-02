@@ -102,7 +102,11 @@ public class FabricInventoryHandler implements IInventoryHandler {
 
     @Override
     public int getSlotLimit(int slot) {
-        return maxStackSize;
+        ItemStack stack = stacks.get(slot);
+        if (!stack.isEmpty()) {
+            return Math.min(64, stack.getMaxStackSize());
+        }
+        return 64;
     }
 
     @Override
