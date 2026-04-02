@@ -39,37 +39,41 @@ public class ShulkerVaultScreen extends AbstractContainerScreen<ShulkerVaultMenu
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        // No custom count rendering here — renderSlot handles it below.
         super.renderLabels(graphics, mouseX, mouseY);
     }
 
     @Override
     protected void renderSlot(GuiGraphics guiGraphics, Slot slot) {
         int idx = this.menu.slots.indexOf(slot);
-        boolean isVisibleVaultSlot = idx >= 0
-                && idx < TOTAL_BACKING_SLOTS
-                && idx % BACKING_SLOTS_PER_VIRTUAL == 0;
 
-        if (!isVisibleVaultSlot) {
-            super.renderSlot(guiGraphics, slot);
+        // Non-primary backing slots (idx % 4 != 0) are off-screen sync slots at -9999.
+        // Skip them entirely — calling super here would render the item near screen edges.
+        if (idx >= 0 && idx < TOTAL_BACKING_SLOTS && idx % BACKING_SLOTS_PER_VIRTUAL != 0) {
             return;
         }
 
-        int totalCount = 0;
-        ItemStack rep = ItemStack.EMPTY;
-        for (int i = 0; i < BACKING_SLOTS_PER_VIRTUAL; i++) {
-            ItemStack s = this.menu.slots.get(idx + i).getItem();
-            if (!s.isEmpty()) {
-                if (rep.isEmpty()) rep = s;
-                if (ItemStack.isSameItemSameComponents(rep, s)) totalCount += s.getCount();
+        // Primary vault slot: aggregate counts across all 4 backing slots
+        if (idx >= 0 && idx < TOTAL_BACKING_SLOTS && idx % BACKING_SLOTS_PER_VIRTUAL == 0) {
+            int totalCount = 0;
+            ItemStack rep = ItemStack.EMPTY;
+            for (int i = 0; i < BACKING_SLOTS_PER_VIRTUAL; i++) {
+                ItemStack s = this.menu.slots.get(idx + i).getItem();
+                if (!s.isEmpty()) {
+                    if (rep.isEmpty()) rep = s;
+                    if (ItemStack.isSameItemSameComponents(rep, s)) totalCount += s.getCount();
+                }
             }
+
+            if (rep.isEmpty()) return; // empty group, render nothing
+
+            String countLabel = totalCount > 1 ? formatCount(totalCount) : null;
+            guiGraphics.renderItem(rep, this.leftPos + slot.x, this.topPos + slot.y);
+            guiGraphics.renderItemDecorations(this.font, rep, this.leftPos + slot.x, this.topPos + slot.y, countLabel);
+            return;
         }
 
-        if (rep.isEmpty()) return; // truly empty slot, render nothing
-
-        String countLabel = totalCount > 1 ? formatCount(totalCount) : (totalCount == 1 ? null : "");
-        guiGraphics.renderItem(rep, this.leftPos + slot.x, this.topPos + slot.y);
-        guiGraphics.renderItemDecorations(this.font, rep, this.leftPos + slot.x, this.topPos + slot.y, countLabel);
+        // All other slots (player inventory, hotbar): vanilla behavior
+        super.renderSlot(guiGraphics, slot);
     }
 
     private String formatCount(int count) {
